@@ -1,7 +1,7 @@
 {
-  "name": "ehsan-sni",
+  "name": "chat-backend-service",
   "version": "1.0.0",
-  "description": "Simple backend service",
+  "description": "Internal API service",
   "private": true,
   "license": "MIT",
   "scripts": {
