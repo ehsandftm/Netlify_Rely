@@ -2,10 +2,7 @@
   command = "npm run build"
   publish = "public"
 
+# همه درخواست‌ها را به Edge Function بفرست (ساده‌ترین و مطمئن‌ترین روش)
 [[edge_functions]]
   function = "relay"
-  path = "/api/v1/chat/conversation/authenticated"
-
-[[edge_functions]]
-  function = "relay"
-  path = "/api/v1/chat/conversation/authenticated/*"
+  path = "/*"
