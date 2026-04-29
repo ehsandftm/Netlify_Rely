@@ -4,4 +4,4 @@
 
 [[edge_functions]]
   function = "relay"
-  path = "/*"
+  path = "/api/v1/chat/conversation/authenticated"
