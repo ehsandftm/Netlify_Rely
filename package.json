@@ -1,0 +1,14 @@
+{
+  "name": "ehsan-sni",
+  "version": "1.0.0",
+  "description": "Simple backend service",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'No build step required'"
+  },
+  "devDependencies": {
+    "netlify-cli": "latest"
+  }
+}
