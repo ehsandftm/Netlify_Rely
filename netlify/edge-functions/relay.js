@@ -1,4 +1,5 @@
 // netlify/edge-functions/relay.js
+
 const TARGET_BASE = (Netlify.env.get("TARGET_DOMAIN") || "").replace(/\/$/, "");
 const SECRET_PATH = "/api/v1/chat/conversation/authenticated";
 
@@ -6,7 +7,7 @@ const STRIP_HEADERS = new Set([
   "host", "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
   "te", "trailer", "transfer-encoding", "upgrade", "forwarded",
   "x-forwarded-host", "x-forwarded-proto", "x-forwarded-port",
-  "x-nf-", "x-netlify-", "cf-ray", "cf-connecting-ip", "server", "via"
+  "server", "x-powered-by", "via", "x-netlify", "x-nf-"
 ]);
 
 export default async function handler(request) {
@@ -20,19 +21,21 @@ export default async function handler(request) {
     });
   }
 
-  // فقط مسیر خاص را قبول کن — بقیه را مثل یک سایت معمولی扱 کن
+  // فقط مسیر SECRET_PATH را پردازش کن
   if (!url.pathname.startsWith(SECRET_PATH)) {
-    // برای ریشه سایت یک پاسخ ساده HTML بده (طبیعی‌تر)
     if (url.pathname === "/" || url.pathname === "") {
       return new Response(
-        `<html><head><title>Chat Service</title></head><body><h1>Service is running</h1></body></html>`,
+        `<!DOCTYPE html>
+        <html lang="fa">
+        <head><meta charset="utf-8"><title>Chat Service</title></head>
+        <body><h1>Chat Service</h1><p>Authentication required for full access.</p></body>
+        </html>`,
         { 
           status: 200,
           headers: { "content-type": "text/html; charset=utf-8" }
         }
       );
     }
-    // بقیه مسیرها 404
     return new Response("Not Found", { status: 404 });
   }
 
@@ -46,7 +49,6 @@ export default async function handler(request) {
 
     for (const [key, value] of request.headers) {
       const k = key.toLowerCase();
-
       if (STRIP_HEADERS.has(k) || k.startsWith("x-nf-") || k.startsWith("x-netlify-")) continue;
 
       if (k === "user-agent") {
@@ -71,27 +73,22 @@ export default async function handler(request) {
 
     if (hasBody) {
       fetchOptions.body = request.body;
-      // duplex برای streaming بهتر (در Deno Edge)
       fetchOptions.duplex = "half";
     }
 
     const upstream = await fetch(targetUrl, fetchOptions);
 
     const responseHeaders = new Headers(upstream.headers);
-    // پاک‌سازی هدرهای سرور
-    responseHeaders.delete("server");
-    responseHeaders.delete("x-powered-by");
-    responseHeaders.delete("via");
-    responseHeaders.delete("transfer-encoding");
+    // پاک کردن هدرهای شناسایی‌کننده
+    ["server", "x-powered-by", "via", "transfer-encoding"].forEach(h => responseHeaders.delete(h));
 
     return new Response(upstream.body, {
       status: upstream.status,
-      statusText: upstream.statusText,
       headers: responseHeaders,
     });
 
   } catch (error) {
-    console.error("Relay error:", error);
+    console.error("Relay error:", error.message);
     return new Response("Service Unavailable", { 
       status: 502,
       headers: { "content-type": "text/plain" }
