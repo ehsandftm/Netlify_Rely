@@ -7,13 +7,12 @@ const STRIP_HEADERS = new Set([
   "host", "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
   "te", "trailer", "transfer-encoding", "upgrade", "forwarded",
   "x-forwarded-host", "x-forwarded-proto", "x-forwarded-port",
-  "server", "x-powered-by", "via", "x-netlify", "x-nf-"
+  "server", "x-powered-by", "via"
 ]);
 
 export default async function handler(request) {
   const url = new URL(request.url);
 
-  // اگر TARGET_DOMAIN تنظیم نشده باشد
   if (!TARGET_BASE) {
     return new Response("Service Unavailable", { 
       status: 503,
@@ -21,19 +20,17 @@ export default async function handler(request) {
     });
   }
 
-  // فقط مسیر SECRET_PATH را پردازش کن
+  // فقط مسیر خاص را relay کنیم
   if (!url.pathname.startsWith(SECRET_PATH)) {
+    // صفحه اصلی سایت
     if (url.pathname === "/" || url.pathname === "") {
       return new Response(
         `<!DOCTYPE html>
         <html lang="fa">
-        <head><meta charset="utf-8"><title>Chat Service</title></head>
-        <body><h1>Chat Service</h1><p>Authentication required for full access.</p></body>
+        <head><meta charset="utf-8"><title>Service</title></head>
+        <body><h1>Service Running</h1><p>Access restricted.</p></body>
         </html>`,
-        { 
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        }
+        { status: 200, headers: { "content-type": "text/html; charset=utf-8" }}
       );
     }
     return new Response("Not Found", { status: 404 });
@@ -52,10 +49,9 @@ export default async function handler(request) {
       if (STRIP_HEADERS.has(k) || k.startsWith("x-nf-") || k.startsWith("x-netlify-")) continue;
 
       if (k === "user-agent") {
-        headers.set(k, value || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36");
+        headers.set(k, value || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
         continue;
       }
-
       headers.set(key, value);
     }
 
@@ -65,12 +61,7 @@ export default async function handler(request) {
     const method = request.method;
     const hasBody = method !== "GET" && method !== "HEAD";
 
-    const fetchOptions = {
-      method,
-      headers,
-      redirect: "manual",
-    };
-
+    const fetchOptions = { method, headers, redirect: "manual" };
     if (hasBody) {
       fetchOptions.body = request.body;
       fetchOptions.duplex = "half";
@@ -79,7 +70,6 @@ export default async function handler(request) {
     const upstream = await fetch(targetUrl, fetchOptions);
 
     const responseHeaders = new Headers(upstream.headers);
-    // پاک کردن هدرهای شناسایی‌کننده
     ["server", "x-powered-by", "via", "transfer-encoding"].forEach(h => responseHeaders.delete(h));
 
     return new Response(upstream.body, {
